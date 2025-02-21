@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Insert App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section, .preview-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #previewCanvas {
+            max-width: 100%;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Вставка фото в зеленые области</h1>
+
+        <div class="upload-section">
+            <label for="templateUpload">Загрузите шаблон (с зелеными квадратами):</label>
+            <input type="file" id="templateUpload" accept="image/*">
+
+            <label for="photoUpload">Загрузите фото для вставки:</label>
+            <input type="file" id="photoUpload" accept="image/*" multiple>
+
+            <button id="processButton" disabled>Обработать</button>
+        </div>
+
+        <div class="preview-section">
+            <h2>Предпросмотр:</h2>
+            <canvas id="previewCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const templateUpload = document.getElementById('templateUpload');
+            const photoUpload = document.getElementById('photoUpload');
+            const processButton = document.getElementById('processButton');
+            const previewCanvas = document.getElementById('previewCanvas');
+            const ctx = previewCanvas.getContext('2d');
+
+            let templateImage = null;
+            let photos = [];
+
+            // Load template image
+            templateUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const img = new Image();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        img.onload = () => {
+                            templateImage = img;
+                            checkInputs();
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Load photos
+            photoUpload.addEventListener('change', (e) => {
+                photos = Array.from(e.target.files).map(file => {
+                    const img = new Image();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    return img;
+                });
+                checkInputs();
+            });
+
+            // Enable process button when both template and photos are loaded
+            function checkInputs() {
+                if (templateImage && photos.length > 0) {
+                    processButton.disabled = false;
+                } else {
+                    processButton.disabled = true;
+                }
+            }
+
+            // Process images
+            processButton.addEventListener('click', () => {
+                if (!templateImage || photos.length === 0) return;
+
+                // Set canvas size to match template
+                previewCanvas.width = templateImage.width;
+                previewCanvas.height = templateImage.height;
+
+                // Draw template as base
+                ctx.drawImage(templateImage, 0, 0);
+
+                // Simple chroma keying for green areas (RGB: ~0, 255, 0)
+                const imageData = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    // Check if pixel is green (tolerance can be adjusted)
+                    if (g > 200 && r < 50 && b < 50) {
+                        // Replace with photo (simple cycling through photos)
+                        const photoIndex = Math.floor((i / 4) / (previewCanvas.width * previewCanvas.height / photos.length)) % photos.length;
+                        const photo = photos[photoIndex];
+                        if (photo.complete) {
+                            // Scale photo to fit the green area (simplified)
+                            ctx.drawImage(photo, (i / 4) % previewCanvas.width, Math.floor((i / 4) / previewCanvas.width), 1, 1);
+                        }
+                    }
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+            });
+        });
+    </script>
+</body>
+</html>
