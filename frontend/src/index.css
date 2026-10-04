@@ -1,0 +1,155 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic colour tokens. Components use `bg-canvas`, `bg-surface`, `text-fg`,
+ * `text-muted`, `border-line`, `accent`… so light/dark is handled in one place.
+ */
+:root {
+  --c-canvas: #f6f7f9;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8fafc;
+  --c-surface-3: #f1f5f9;
+  --c-line: #e5e7eb;
+  --c-line-strong: #d1d5db;
+  --c-fg: #0f172a;
+  --c-fg-soft: #334155;
+  --c-muted: #64748b;
+  --c-subtle: #94a3b8;
+  --c-accent: #4f46e5;
+  --c-accent-hover: #4338ca;
+  --c-accent-soft: #eef2ff;
+  --c-accent-fg: #ffffff;
+  --c-paper: #ffffff;
+  --c-danger: #dc2626;
+  --c-danger-soft: #fef2f2;
+  --c-success: #16a34a;
+  --c-warning: #d97706;
+  --shadow-color: 15 23 42;
+  color-scheme: light;
+}
+
+.dark {
+  --c-canvas: #0b0d12;
+  --c-surface: #12151c;
+  --c-surface-2: #161a22;
+  --c-surface-3: #1c212b;
+  --c-line: #252b36;
+  --c-line-strong: #323a48;
+  --c-fg: #e8ebf1;
+  --c-fg-soft: #c3c9d4;
+  --c-muted: #8a93a3;
+  --c-subtle: #5f6878;
+  --c-accent: #818cf8;
+  --c-accent-hover: #a5b4fc;
+  --c-accent-soft: #1e1f3a;
+  --c-accent-fg: #0b0d12;
+  --c-paper: #151922;
+  --c-danger: #f87171;
+  --c-danger-soft: #2a1618;
+  --c-success: #4ade80;
+  --c-warning: #fbbf24;
+  --shadow-color: 0 0 0;
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-soft: var(--c-fg-soft);
+  --color-muted: var(--c-muted);
+  --color-subtle: var(--c-subtle);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-fg: var(--c-accent-fg);
+  --color-paper: var(--c-paper);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+
+  --shadow-soft: 0 1px 2px rgb(var(--shadow-color) / 0.04), 0 1px 3px rgb(var(--shadow-color) / 0.06);
+  --shadow-lift: 0 4px 12px rgb(var(--shadow-color) / 0.08), 0 12px 32px rgb(var(--shadow-color) / 0.08);
+  --shadow-pop: 0 10px 38px -10px rgb(var(--shadow-color) / 0.35), 0 10px 20px -15px rgb(var(--shadow-color) / 0.2);
+
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-slide-up: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in-right: slide-in-right 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas text-fg font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--c-accent) 25%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--c-subtle);
+  }
+}
+
+@layer components {
+  /* Borderless inline inputs used inside builder blocks */
+  .inline-input {
+    @apply w-full rounded-md bg-transparent px-2 py-1.5 text-fg outline-none transition-colors
+      hover:bg-surface-3 focus:bg-surface focus:ring-2 focus:ring-accent/30;
+  }
+  .field-input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition
+      placeholder:text-subtle hover:border-line-strong focus:border-accent focus:ring-3 focus:ring-accent/15;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-line-strong) transparent;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+  }
+}

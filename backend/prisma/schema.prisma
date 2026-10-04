@@ -1,0 +1,179 @@
+// QA Builder — database schema
+// Documents are assembled from generic blocks: DocumentBlock stores the
+// builder structure (type + order + parentId) while content/settings are JSONB,
+// so new block kinds never require new tables.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DocumentType {
+  BUG_REPORT
+  CHECKLIST
+  TEST_CASE
+  TEST_LIST
+  TEST_PLAN
+}
+
+enum BlockType {
+  TEXT
+  HEADING
+  INPUT
+  TEXTAREA
+  SELECT
+  CHECKBOX
+  RADIO
+  STEP
+  STEP_GROUP
+  SECTION
+  TABLE
+  IMAGE
+  ATTACHMENT
+  SEVERITY
+  PRIORITY
+  ENVIRONMENT
+  STATUS
+  COMMENT
+  RUN_INFO
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  documents   Document[]
+  templates   Template[]
+  favorites   DocumentFavorite[]
+  versions    DocumentVersion[]
+  attachments Attachment[]
+}
+
+model Document {
+  id        String       @id @default(uuid())
+  title     String
+  type      DocumentType
+  ownerId   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  blocks      DocumentBlock[]
+  versions    DocumentVersion[]
+  favorites   DocumentFavorite[]
+  attachments Attachment[]
+
+  @@index([ownerId, updatedAt])
+  @@index([ownerId, type])
+}
+
+model DocumentBlock {
+  id         String    @id
+  documentId String
+  type       BlockType
+  order      Int
+  parentId   String?
+  content    Json      @default("{}")
+  settings   Json      @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  document Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  parent   DocumentBlock?  @relation("DocumentBlockTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children DocumentBlock[] @relation("DocumentBlockTree")
+
+  @@index([documentId, parentId, order])
+}
+
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  documentId String
+  number     Int
+  title      String
+  // Full snapshot of the block list at the moment of saving
+  snapshot   Json
+  authorId   String?
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([documentId, number])
+}
+
+model Template {
+  id          String       @id @default(uuid())
+  name        String
+  description String       @default("")
+  docType     DocumentType
+  isSystem    Boolean      @default(false)
+  // Default template is used when a document is created without explicit choice
+  isDefault   Boolean      @default(false)
+  ownerId     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  owner  User?           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  blocks TemplateBlock[]
+
+  @@index([docType])
+  @@index([ownerId])
+}
+
+model TemplateBlock {
+  id         String    @id
+  templateId String
+  type       BlockType
+  order      Int
+  parentId   String?
+  content    Json      @default("{}")
+  settings   Json      @default("{}")
+
+  template Template        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  parent   TemplateBlock?  @relation("TemplateBlockTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children TemplateBlock[] @relation("TemplateBlockTree")
+
+  @@index([templateId, parentId, order])
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  documentId String
+  uploaderId String
+  fileName   String
+  mimeType   String
+  size       Int
+  storageKey String   @unique
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploader User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model DocumentFavorite {
+  userId     String
+  documentId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, documentId])
+}

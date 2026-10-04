@@ -1,0 +1,20 @@
+{
+  "name": "qa-builder",
+  "private": true,
+  "version": "1.0.0",
+  "description": "QA Builder — визуальный конструктор QA-документации",
+  "workspaces": ["backend", "frontend", "e2e"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm:dev -w backend\" \"npm:dev -w frontend\"",
+    "build": "npm run build -w frontend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "setup": "npm run db:migrate && npm run db:seed",
+    "test": "npm run test -w backend && npm run test -w frontend",
+    "test:e2e": "npm run test -w e2e",
+    "lint:types": "npm run typecheck -w frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
